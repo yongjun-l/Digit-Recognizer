@@ -1,0 +1,178 @@
+# %% [code]
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load in 
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the "../input/" directory.
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# Any results you write to the current directory are saved as output.
+
+# %% [code]
+prediction = pd.read_csv("../input/digit-recognizer/sample_submission.csv")
+test = pd.read_csv("../input/digit-recognizer/test.csv")
+train = pd.read_csv("../input/digit-recognizer/train.csv")
+
+'''
+train dataset has 42000 rows, and 785 columns. 
+Rows are examples
+1st column is the label (answers)
+All the rest(784) columns are pixel values
+
+test set has 28000 rows, and 784 columns
+test set does not include the answer column.
+'''
+
+train = train.values.T # turn train set dataframe to numpy array form so it is easier to work with and scale it.
+test = test.values.T
+y_values = train[[0],:] # bring y values  [3,1,4,6,2,0, ... ]
+train = train[1:,:]
+
+y = np.zeros((10,y_values.shape[1])) 
+for i in range(y_values.shape[1]):
+    y[y_values[0][i]][i] = 1
+
+print('y : ',y.shape)
+print('train : ',train.shape)
+print('test : ',test.shape)
+
+# scaling dataset values to range (0,1)
+    
+train = train/255
+test = test/255
+
+# %% [code]
+def sigmoid(matrix):
+    s = 1 / (1 + np.exp(-matrix))
+    return s
+
+def relu(matrix):
+    matrix = matrix * (matrix > 0)
+    return matrix
+
+def zero_init(dim):
+    zero_vector = np.zeros((dim, 1))
+    return zero_vector
+
+def he_init(layer_dim): #type : list
+    weights = {}
+    for i in range(1,len(layer_dim)):
+        weights['W'+str(i)] = np.random.randn(layer_dim[i],layer_dim[i-1]) * np.sqrt(1/layer_dim[i-1])
+        weights['b'+str(i)] = zero_init(layer_dim[i])
+    return weights
+
+def forward_propagation(w,b,a,activation): # w : weights b : bias a : activation from previous layer
+    z = np.dot(w, a) + b
+    
+    if activation == 'sigmoid':
+        a = sigmoid(z)
+    elif activation == 'relu':
+        a = relu(z)
+    return z,a
+
+def cost_function(a,y): # a : activation from last layer, y : labels 
+    cost = np.zeros((a.shape[0],1))
+    for i in range(a.shape[0]):
+        entry = -(np.dot(y[i][:],np.log(a[i][:]).T) + np.dot((1-y[i][:]),np.log(1-a[i][:]).T))/y.shape[1]
+        cost[i][0] = entry
+    cost = np.linalg.norm(cost, ord=2)
+    return cost
+    
+def forward_propagation_full(weights, layer_dim, data, y):
+    cache = {}
+    for i in range(1,len(layer_dim)):
+        w = weights['W'+str(i)]
+        b = weights['b'+str(i)]
+        if i == 1:
+            cache['z'+str(i)], cache['a'+str(i)] = forward_propagation(w,b,data,'relu')
+        elif i == len(layer_dim)-1:
+            cache['z'+str(i)], cache['a'+str(i)] = forward_propagation(w,b,cache['a'+str(i-1)],'sigmoid')
+        else:
+            cache['z'+str(i)], cache['a'+str(i)] = forward_propagation(w,b,cache['a'+str(i-1)],'relu')
+    
+    cost = cost_function(cache['a'+str((len(layer_dim)-1))], y)
+    return cost, cache
+
+def backward_propagation(z, da, a_prev, w):
+    
+    return dw,db,dz
+
+def backward_propagation_full(cost, cache, weights, train, y):
+    gradients = {}
+    num_layers = len(cache)/2 
+    dJ = 2*cost #gradient of L2 norm cost in respect to cost
+    
+    for i in reversed(range(num_layers)):
+        w = weights['w'+str(i)]
+    
+    return num_layers
+
+def update_parameter(w, b, train, y, num_iteration, learning_rate = 0.01, show_cost = False):
+    print('update parameter')
+    for i in range(num_iteration):
+        print('i : ',i)
+        print('backward')
+        dw, db = backward_propagation(w, b, train, y)
+        print('forward')
+        cost = forward_propagation(w,b,train)['cost']
+        print('update')
+        w = w - learning_rate*dw
+        b = b - learning_rate*db.to_numpy()
+        if i % 100 and show_cost == True:
+            print('cost after {} iteration :'.format(i), cost)
+    return w,b
+
+def predict(dataset,w,b):
+    a = forward_propagation(w,b,train)['a']
+    for i in range(a.shape[1]):
+        if a[0][i] > 0.5:
+            prediction[0][i] = 1
+        else:
+            prediction[0][i] = 0
+    return prediction
+
+def model(train, y, show_loss = True, num_iter = 2000):
+    w = zeros(train.shape[0])
+    b = np.array([0])
+    print('here we go')
+    w, b = update_parameter(w, b, train, y, num_iter)
+    print('predictions')
+    prediction = predict(train, w,b)
+    print('show cost')
+    if show_loss == True:
+        print(loss(w, b, train, y))
+
+# %% [code]
+#function testing
+
+
+test_matrix = np.array([[1,2,3],[-2,-4,-6],[50,0,-50]])
+#print(test_matrix)
+#print('sigmoid testing\n',sigmoid(test_matrix))
+#print('relu testing\n',relu(test_matrix))
+print('initialization testing\n',he_init([3,4,2,9]))
+
+a = sigmoid(np.random.randn(10,42000))
+print(a)
+print(cost_function(a,y))
+'''
+
+
+layer_dim = [784,6,6,10]
+weights = he_init(layer_dim)
+cost,cache = forward_propagation_full(weights,layer_dim,train,y)
+
+
+print(weights.keys())
+print(cache.keys())'''
+
+# %% [code]
+#main
