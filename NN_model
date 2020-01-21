@@ -1,25 +1,5 @@
-# %% [code]
-# This Python 3 environment comes with many helpful analytics libraries installed
-# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
-# For example, here's several helpful packages to load in 
-
 import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
-
-# Input data files are available in the "../input/" directory.
-# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
-
-import os
-for dirname, _, filenames in os.walk('/kaggle/input'):
-    for filename in filenames:
-        print(os.path.join(dirname, filename))
-
-# Any results you write to the current directory are saved as output.
-
-# %% [code]
-prediction = pd.read_csv("../input/digit-recognizer/sample_submission.csv")
-test = pd.read_csv("../input/digit-recognizer/test.csv")
-train = pd.read_csv("../input/digit-recognizer/train.csv")
 
 '''
 train dataset has 42000 rows, and 785 columns. 
@@ -164,39 +144,3 @@ def model(train, y, show_loss = True, num_iter = 2000):
     print('show cost')
     if show_loss == True:
         print(loss(w, b, train, y))
-
-# %% [code]
-#function testing
-
-
-test_matrix = np.array([[1,2,3],[-2,-4,-6],[50,0,-50]])
-#print(test_matrix)
-#print('sigmoid testing\n',sigmoid(test_matrix))
-#print('relu testing\n',relu(test_matrix))
-print('initialization testing\n',he_init([3,4,2,9]))
-
-a = sigmoid(np.random.randn(10,42000))
-print(a)
-print(cost_function(a,y))
-
-
-print('###################################')
-layer_dim = [784,6,6,10]
-weights = he_init(layer_dim)
-cost,cache = forward_propagation_full(weights,layer_dim,train,y)
-
-
-print(weights.keys())
-print(cache.keys())
-z = np.array([[-1],[-1],[-20],[3],[19],[6]])
-some_array2 = np.array([[ 1],[ 0],[ 8],[2],[15],[5]])
-some_array3 = some_array1[some_array1>0]
-print(some_array3)
-
-s = relu(z)
-s[s<0] = 0
-dz = s
-print(dz)
-
-# %% [code]
-#main
