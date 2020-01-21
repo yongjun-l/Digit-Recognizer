@@ -101,19 +101,34 @@ def forward_propagation_full(weights, layer_dim, data, y):
     cost = cost_function(cache['a'+str((len(layer_dim)-1))], y)
     return cost, cache
 
-def backward_propagation(z, da, a_prev, w):
+def backward_propagation(da, a_prev, z, w, b, activation_method):
+    if activation_method == 'sigmoid':
+        s = sigmoid(z)
+        dz = da * s * (1-s)
     
-    return dw,db,dz
+    elif activation_method == 'relu':
+        s = relu(z)
+        s[s<0] = 0
+        dz = s
+        
+    m = a_prex.shape[1]
+    dw = np.dot(dz, a_prev.T)
+    da_prev = np.dot(w.T, dz)
+    db = np.sum(dz, axis = 0)/m
+    
+    return da, dw, db
 
 def backward_propagation_full(cost, cache, weights, train, y):
-    gradients = {}
-    num_layers = len(cache)/2 
-    dJ = 2*cost #gradient of L2 norm cost in respect to cost
+    daL = -y/aL + (1-y)/(1-aL)
     
-    for i in reversed(range(num_layers)):
-        w = weights['w'+str(i)]
-    
-    return num_layers
+    for iteration in reversed(range(1, len(layer_dims))):
+        
+        
+        da_prev, dw, db = backward_propagation()
+        grads['da'+str(iteration)] = da_prev
+        grads['dw'+str(iteration)] = dw
+        grads['db'+str(iteration)] = db
+    return
 
 def update_parameter(w, b, train, y, num_iteration, learning_rate = 0.01, show_cost = False):
     print('update parameter')
@@ -163,16 +178,25 @@ print('initialization testing\n',he_init([3,4,2,9]))
 a = sigmoid(np.random.randn(10,42000))
 print(a)
 print(cost_function(a,y))
-'''
 
 
+print('###################################')
 layer_dim = [784,6,6,10]
 weights = he_init(layer_dim)
 cost,cache = forward_propagation_full(weights,layer_dim,train,y)
 
 
 print(weights.keys())
-print(cache.keys())'''
+print(cache.keys())
+z = np.array([[-1],[-1],[-20],[3],[19],[6]])
+some_array2 = np.array([[ 1],[ 0],[ 8],[2],[15],[5]])
+some_array3 = some_array1[some_array1>0]
+print(some_array3)
+
+s = relu(z)
+s[s<0] = 0
+dz = s
+print(dz)
 
 # %% [code]
 #main
