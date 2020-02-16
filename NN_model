@@ -2,6 +2,7 @@ import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import matplotlib as plt
 
+'''
 train dataset has 42000 rows, and 785 columns. 
 Rows are examples
 1st column is the label (answers)
