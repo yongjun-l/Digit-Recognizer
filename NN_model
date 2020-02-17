@@ -133,3 +133,4 @@ def predict(parameters, layer_dim, train, y):
     prediction = activation.argmax(0)
     data_to_submit = pd.DataFrame(prediction.T, columns=['prediction'])
     return data_to_submit
+    
