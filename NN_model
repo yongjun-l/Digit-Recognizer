@@ -140,7 +140,7 @@ def update_parameter(parameters, grads, optimizer, learning_rate):
 
 
 
-def model(x, y, layer_dims, num_iter = 2000, optimizer = 'fullBatch', show_cost = True, learning_rate = 0.0007):
+def model(x, y, layer_dims, num_iter = 500, optimizer = 'fullBatch', show_cost = True, learning_rate = 1):
     parameters = he_init(layer_dims)
     
     for iteration in range(1,num_iter+1):
@@ -159,3 +159,9 @@ def model(x, y, layer_dims, num_iter = 2000, optimizer = 'fullBatch', show_cost 
     #plt.show()
 
     return parameters
+
+def predict(parameters, layer_dim, train, y):
+    activation, cache = forward_propagation_full(parameters, layer_dim, train, y)
+    prediction = activation.argmax(0)
+    data_to_submit = pd.DataFrame(prediction.T, columns=['prediction'])
+    return data_to_submit
