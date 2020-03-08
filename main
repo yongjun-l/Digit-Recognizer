@@ -38,8 +38,8 @@ print('train : ',train.shape)
 print('test : ',test.shape)
 
 # scaling dataset values to range (0,1)
-train = train/255
-test = test/255
+train = train/np.std(train)
+test = test/np.std(test)
 
 #running
 data_to_submit = predict(parameters,layer_dim, train, y)
