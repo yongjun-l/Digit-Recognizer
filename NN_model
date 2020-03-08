@@ -140,8 +140,25 @@ def init_minibatch(x,y,minibatch_size):
     
     return minibatches
 
-def model(x, y, layer_dims, num_iter = 500, optimizer = 'fullBatch', show_cost = True, learning_rate = 0.1, beta = 0.9):
+def initialize_momentum(layer_dims):
+    momentum = {}
+    L = len(layer_dims)
+    for i in range(1,L):
+        momentum['vw'+str(i)] = np.zeros((layer_dims[i],layer_dims[i-1]))
+        momentum['vb'+str(i)] = np.zeros((layer_dims[i],1))
+    return momentum
+
+def update_momentum(momentum, grads, beta1, layer_dims):
+    L = len(layer_dims)
+    for i in range(1,L):
+        momentum['vw'+str(i)] = (beta1*momentum['vw'+str(i)]) + ((1-beta1)*grads['dw'+str(i)])
+        momentum['vb'+str(i)] = (beta1*momentum['vb'+str(i)]) + ((1-beta1)*grads['db'+str(i)])
+    return momentum
+
+
+def model(x, y, layer_dims, num_iter = 100, optimizer = 'momentum', show_cost = True, learning_rate = 0.1, minibatch_size = 512, beta1 = 0.9):
     parameters = he_init(layer_dims)
+    costs = []
     """
     for iteration in range(1,num_iter+1):
         aL, cache = forward_propagation_full(parameters, layer_dim, x, y)        
@@ -152,39 +169,37 @@ def model(x, y, layer_dims, num_iter = 500, optimizer = 'fullBatch', show_cost =
             print('cost after {} iteration :'.format(iteration), cost)
     """  
     #momentum
-    minibatches = init_minibatch(x,y,64)
+    minibatches = init_minibatch(x,y,minibatch_size)
+    momentum = initialize_momentum(layer_dims)
     counter = 0
-
-    for minibatch in minibatches:
-        mini_x,mini_y = minibatch
-        print('miniyshape',mini_y.shape)
-        aL, cache = forward_propagation_full(parameters, layer_dim, mini_x, mini_y)
-        cost = softmax_cost(aL, mini_y)
-        grads = backward_propagation_full(mini_x, mini_y, parameters, cache)
-        parameters = update_parameter(parameters, grads, optimizer,learning_rate)
-        #v = beta*v + (1-beta)*grads
-        if counter % 10 == 0 and show_cost == True:
-            print('cost after {} iteration :'.format(counter), cost)
+    for iter in range(num_iter):
+        for minibatch in minibatches:
+            mini_x,mini_y = minibatch
+            aL, cache = forward_propagation_full(parameters, layer_dim, mini_x, mini_y)
+            cost = softmax_cost(aL, mini_y)
+            grads = backward_propagation_full(mini_x, mini_y, parameters, cache)
         
-        counter += 1
+            if optimizer == 'momentum':
+                update_momentum(momentum, grads, beta1, layer_dims)
+            elif optimizer == 'gradient_descent':
+                parameters = update_parameter(parameters, grads, optimizer,learning_rate)
+            
+            if counter % 100 == 0 and show_cost == True:
+                costs.append(cost)
+                print('cost after {} iteration :'.format(counter), cost)
+        
+            counter += 1
 
     
-    #plt.plot(costs)
-    #plt.ylabel('cost')
-    #plt.xlabel('epochs (per 100)')
-    #plt.title("Learning rate = " + str(learning_rate))
-    #plt.show()
+    plt.pyplot.plot(costs)
+    plt.pyplot.ylabel('cost')
+    plt.pyplot.xlabel('epochs (per 100)')
+    plt.pyplot.title("Learning rate = " + str(learning_rate))
+    plt.pyplot.show()
 
     return parameters
 
-def initialize_momentum(layer_dims):
-    momentum = {}
-    L = len(layer_dim)
-    for i in range(1,L):
-        momentum['vw'+str(i)] = zero_init(layer_dim[i],layer_dim[i-1])
-        momentum['vb'+str(i)] = zero_init(layer_dim[i])
-    return momentum
-
+        
 def predict(parameters, layer_dim, train, y):
     activation, cache = forward_propagation_full(parameters, layer_dim, train, y)
     prediction = activation.argmax(0)
