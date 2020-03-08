@@ -42,7 +42,11 @@ train = train/np.std(train)
 test = test/np.std(test)
 
 #running
+layer_dims = [784, 500, 300, 100, 50 ,10]
+parameters = model(train, y, layer_dim)
 data_to_submit = predict(parameters,layer_dim, train, y)
 correct = data_to_submit.where(data_to_submit.loc[:,'prediction'] == train_csv.loc[:,'label'])
 correct_number = correct.count(numeric_only = True)
-print('correct',correct_number)
+print("correct  : ", correct_number)
+print("accuracy : ", 100*(correct_number/y.shape[1]))
+print('finished')
