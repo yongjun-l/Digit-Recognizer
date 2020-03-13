@@ -1,18 +1,19 @@
-import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import numpy as np 
+import pandas as pd 
 import matplotlib as plt
+from NN_model import *
 
-# Input data files are available in the "../input/" directory.
-# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
-
+# readiing dataset from kaggle 
+''' 
 import os
 for dirname, _, filenames in os.walk('/kaggle/input'):
     for filename in filenames:
         print(os.path.join(dirname, filename))
-      
+
 prediction = pd.read_csv("../input/digit-recognizer/sample_submission.csv")
 test_csv = pd.read_csv("../input/digit-recognizer/test.csv")
 train_csv = pd.read_csv("../input/digit-recognizer/train.csv")
+'''
 
 '''
 train dataset has 42000 rows, and 785 columns. 
