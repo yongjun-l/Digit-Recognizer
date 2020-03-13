@@ -11,7 +11,7 @@ def softmax(matrix):
     matrix = matrix/np.sum(matrix, axis=0, keepdims=True)
     return matrix
 
-def zero_init(dim):
+def zero_init(dim): 
     zero_vector = np.zeros((dim, 1))
     return zero_vector
 
@@ -34,22 +34,23 @@ def forward_propagation(w,b,a,activation): # w : weights b : bias a : activation
         a = softmax(z)
     return z,a
     
-def forward_propagation_full(parameters, layer_dim, x, y):
-    cache = {}
+def forward_propagation_full(parameters, layer_dim, x, y):  # x : input data y : label
+    cache = {} # stores z,a values for backward propagation
     cache['a'+str(0)] = x
     L = len(layer_dim)
     for i in range(1,L):
         w = parameters['w'+str(i)]
         b = parameters['b'+str(i)]
-        if i == L-1:
+        if i == L-1:  # use softmax activaton for the last layer
             cache['z'+str(i)], cache['a'+str(i)] = forward_propagation(w,b,cache['a'+str(i-1)],'softmax') 
-        else:
+        else: # use sigmoid or relu for the other layers. 
             cache['z'+str(i)], cache['a'+str(i)] = forward_propagation(w,b,cache['a'+str(i-1)],'relu')
     
-    aL = cache['a'+str(L-1)]
+    aL = cache['a'+str(L-1)] # aL : final activation. returned value of softmax
     return aL, cache
 
-def cost_function(aL,y): # a : activation from final layer, y : labels 
+# cost function for binary classification. not used in this model
+def cost_function(aL,y): # aL : activation from final layer, y : labels 
     cost = np.zeros((aL.shape[0],1))
     for i in range(y.shape[0]):
         cost[i][0] = -(np.dot(y[i][:],np.log(aL[i][:]).T) + np.dot((1-y[i][:]),np.log(1-aL[i][:]).T))/y.shape[1]
@@ -61,7 +62,7 @@ def softmax_cost(aL,y):
     cost = (1/y.shape[1])*np.sum(loss, axis=1)
     return cost
 
-def backward_propagation(da, a_prev, z, w, b, activation_method):
+def backward_propagation(da, a_prev, z, w, b, activation_method): # da : gradient of a from the next layer
     if activation_method == 'sigmoid':
         s = sigmoid(z)
         dz = da * s * (1-s)
@@ -88,8 +89,8 @@ def backward_propagation_full(x, y, parameters, cache):
     #daL = -y/aL + (1-y)/(1-aL)
     grads['da'+str(L)] = y
     
-    flag = False
-    for i in reversed(range(1,L+1)): #3,2,1
+    flag = False # apply gradient descent for softmax only for the first case
+    for i in reversed(range(1,L+1)):
         if flag == False:
             activation_method = 'softmax'
             flag = True
@@ -106,13 +107,12 @@ def backward_propagation_full(x, y, parameters, cache):
         #print('dw'+str(i), grads['dw'+str(i)].shape)
         #print('db'+str(i), grads['db'+str(i)].shape)
         #print('da'+str(i), grads['da'+str(i)].shape)
-        
-        
+      
     return grads
 
 def update_parameter(parameters, grads, optimizer, learning_rate):
     L = int(len(parameters)/2)
-    if optimizer == 'fullBatch':
+    if optimizer == 'batch':
         for i in range(L):
             parameters['w'+str(i+1)] -= learning_rate*grads['dw'+str(i+1)]
             parameters['b'+str(i+1)] -= learning_rate*grads['db'+str(i+1)]
@@ -156,7 +156,7 @@ def update_momentum(momentum, grads, beta1, layer_dims):
     return momentum
 
 
-def model(x, y, layer_dims, num_iter = 100, optimizer = 'momentum', show_cost = True, learning_rate = 0.1, minibatch_size = 512, beta1 = 0.9):
+def model(x, y, layer_dims, num_iter = 100, optimizer = 'batch', show_cost = True, learning_rate = 0.1, minibatch_size = 512, beta1 = 0.9):
     parameters = he_init(layer_dims)
     costs = []
     """
