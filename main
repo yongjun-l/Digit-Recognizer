@@ -1,53 +1,38 @@
 import numpy as np 
 import pandas as pd 
 import matplotlib as plt
-from NN_model import *
+import NN_model as nn
 
-# readiing dataset from kaggle 
-''' 
-import os
-for dirname, _, filenames in os.walk('/kaggle/input'):
-    for filename in filenames:
-        print(os.path.join(dirname, filename))
+prediction = pd.read_csv("../sample_submission.csv")
+test_csv = pd.read_csv("../test.csv")
+train_csv = pd.read_csv("../train.csv")
 
-prediction = pd.read_csv("../input/digit-recognizer/sample_submission.csv")
-test_csv = pd.read_csv("../input/digit-recognizer/test.csv")
-train_csv = pd.read_csv("../input/digit-recognizer/train.csv")
-'''
 
-'''
-train dataset has 42000 rows, and 785 columns. 
-Rows are examples
-1st column is the label (answers)
-All the rest(784) columns are pixel values
-
-test set has 28000 rows, and 784 columns
-test set does not include the answer column.
-'''
-
-train = train_csv.values.T # turn train set dataframe to numpy array form so it is easier to work with and scale it.
+train = train_csv.values.T  # turn train set data frame to numpy array form so it is easier to work with and scale it.
 test = test_csv.values.T
-y_values = train[[0],:] # bring y values  [3,1,4,6,2,0, ... ]
-train = train[1:,:]
+y_values = train[[0], :]  # bring y values  [3,1,4,6,2,0, ... ]
+train = train[1:, :]
 
-y = np.zeros((10,y_values.shape[1])) 
+y = np.zeros((10, y_values.shape[1]))
 for i in range(y_values.shape[1]):
-    y[y_values[0][i]][i] = 1 # one-hot encoding
+    y[y_values[0][i]][i] = 1  # one-hot encoding
 
-print('y : ',y.shape)
-print('train : ',train.shape)
-print('test : ',test.shape)
+print('y : ', y.shape)
+print('train : ', train.shape)
+print('test : ', test.shape)
 
-# scaling dataset values to range (0,1)
+# scaling data set values to range (0,1)
 train = train/np.std(train)
 test = test/np.std(test)
 
-#running
-layer_dims = [784, 500, 300, 100, 50 ,10]
-parameters = model(train, y, layer_dim)
-data_to_submit = predict(parameters,layer_dim, train, y)
-correct = data_to_submit.where(data_to_submit.loc[:,'prediction'] == train_csv.loc[:,'label'])
-correct_number = correct.count(numeric_only = True)
+# running
+layer_dims = [784, 500, 300, 100, 50 , 10]
+parameters = nn.model(train, y, layer_dims)
+data_to_submit = nn.predict(parameters, layer_dims, train, y)
+correct = data_to_submit.where(data_to_submit.loc[:, 'prediction'] == train_csv.loc[:, 'label'])
+correct_number = correct.count(numeric_only=True)
 print("correct  : ", correct_number)
 print("accuracy : ", 100*(correct_number/y.shape[1]))
 print('finished')
+
+
