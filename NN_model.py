@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import pandas as pd
 
 def sigmoid(matrix):
@@ -44,15 +44,17 @@ def forward_propagation(w, b, a, activation):  # w : weights b : bias a : activa
     return z, a
 
 
-def forward_propagation_full(parameters, layer_dim, x, y):  # x : input data y : label
+def forward_propagation_full(parameters, layer_dim, x):  # x : input data y : label
     cache = {'a' + str(0): x}  # stores z,a values for backward propagation
     L = len(layer_dim)
     for i in range(1, L):
         w = parameters['w' + str(i)]
         b = parameters['b' + str(i)]
         if i == L - 1:  # use softmax activation for the last layer
+            print("softmax")
             cache['z' + str(i)], cache['a' + str(i)] = forward_propagation(w, b, cache['a' + str(i - 1)], 'softmax')
         else:  # use sigmoid or relu for the other layers.
+            print("relu")
             cache['z' + str(i)], cache['a' + str(i)] = forward_propagation(w, b, cache['a' + str(i - 1)], 'relu')
 
     aL = cache['a' + str(L - 1)]  # aL : final activation. returned value of softmax
@@ -80,9 +82,9 @@ def backward_propagation(da, a_prev, z, w, b, activation_method):  # da : gradie
         dz = da * s * (1 - s)
 
     elif activation_method == 'relu':
-        s = relu(z)
-        s[s < 0] = 0
-        dz = s
+        dz = np.array(da, copy=True)
+        dz[z <= 0] = 0
+
 
     elif activation_method == 'softmax':
         s = softmax(z)
@@ -137,20 +139,20 @@ def update_parameter(parameters, grads, optimizer, learning_rate):
     return parameters
 
 
+
 def init_minibatch(x, y, minibatch_size):
     minibatches = []
-    permu = np.random.permutation(y.shape[1])
-    shuffled_x = x[:, permu]
-    shuffled_y = y[:, permu]
-    num_mini = shuffled_y.shape[1] // minibatch_size
+    np.random.shuffle(x.T)
+    np.random.shuffle(y.T)
+    num_mini = y.shape[1] // minibatch_size
     for i in range(num_mini):
-        mini_x = shuffled_x[:, i * minibatch_size:(i + 1) * minibatch_size]
-        mini_y = shuffled_y[:, i * minibatch_size:(i + 1) * minibatch_size]
+        mini_x = x[:, i * minibatch_size:(i + 1) * minibatch_size]
+        mini_y = y[:, i * minibatch_size:(i + 1) * minibatch_size]
         minibatches.append((mini_x, mini_y))
 
     if y.shape[1] % num_mini != 0:
-        mini_x = shuffled_x[:, num_mini * minibatch_size:]
-        mini_y = shuffled_y[:, num_mini * minibatch_size:]
+        mini_x = x[:, num_mini * minibatch_size:]
+        mini_y = y[:, num_mini * minibatch_size:]
         minibatches.append((mini_x, mini_y))
 
     return minibatches
@@ -173,21 +175,21 @@ def update_momentum(momentum, grads, beta1, layer_dims):
     return momentum
 
 
-def model(x, y, layer_dims, num_iter=100, optimizer='batch', show_cost=True, learning_rate=0.1, minibatch_size=512,
+def model(x, y, layer_dims, num_iter=1, optimizer='momentum', show_cost=True, learning_rate=0.1, minibatch_size=512,
           beta1=0.9):
     parameters = he_init(layer_dims)
     costs = []
-    """
-    for iteration in range(1,num_iter+1):
-        aL, cache = forward_propagation_full(parameters, layer_dim, x, y)        
-        cost = compute_cost(aL,y)
+
+    for iteration in range(1, num_iter+1):
+        aL, cache = forward_propagation_full(parameters, layer_dims, x)
+        cost = softmax_cost(aL, y)
         grads = backward_propagation_full(x, y, parameters, cache)
-        parameters = update_parameter(parameters, grads, optimizer,learning_rate)
-        if iteration % 10 == 0 and show_cost == True:
+        parameters = update_parameter(parameters, grads, optimizer, learning_rate)
+        if iteration % 100 == 0 and show_cost == True:
             print('cost after {} iteration :'.format(iteration), cost)
-    """
+
     # momentum
-    minibatches = init_minibatch(x, y, minibatch_size)
+    """minibatches = init_minibatch(x, y, minibatch_size)
     momentum = initialize_momentum(layer_dims)
     counter = 0
     for iter in range(num_iter):
@@ -206,13 +208,13 @@ def model(x, y, layer_dims, num_iter=100, optimizer='batch', show_cost=True, lea
                 costs.append(cost)
                 print('cost after {} iteration :'.format(counter), cost)
 
-            counter += 1
+            counter += 1"""
 
-    plt.pyplot.plot(costs)
-    plt.pyplot.ylabel('cost')
-    plt.pyplot.xlabel('epochs (per 100)')
-    plt.pyplot.title("Learning rate = " + str(learning_rate))
-    plt.pyplot.show()
+    plt.plot(costs)
+    plt.ylabel('cost')
+    plt.xlabel('epochs (per 100)')
+    plt.title("Learning rate = " + str(learning_rate))
+    plt.show()
 
     return parameters
 
