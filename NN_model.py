@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+
 def sigmoid(matrix):
     s = 1 / (1 + np.exp(-matrix))
     return s
@@ -13,9 +14,10 @@ def relu(matrix):
 
 
 def softmax(matrix):
-    matrix = np.exp(matrix)
-    matrix = matrix / np.sum(matrix, axis=0, keepdims=True)
-    return matrix
+    exp_matrix = np.exp(matrix)
+
+    softmax_matrix = exp_matrix / np.sum(exp_matrix, axis=0, keepdims=True)
+    return softmax_matrix
 
 
 def zero_init(dim):
@@ -23,16 +25,27 @@ def zero_init(dim):
     return zero_vector
 
 
-def he_init(layer_dim):  # type : list
+# weight initialization method from He normal initialization (He-et-al)
+def he_init(layer_dims):
     parameters = {}
-    L = len(layer_dim)
+    L = len(layer_dims)
     for i in range(1, L):
-        parameters['w' + str(i)] = np.random.randn(layer_dim[i], layer_dim[i - 1]) * np.sqrt(1 / layer_dim[i - 1])
-        parameters['b' + str(i)] = zero_init(layer_dim[i])
+        parameters['w' + str(i)] = np.random.randn(layer_dims[i], layer_dims[i - 1]) * np.sqrt(1 / layer_dims[i - 1])
+        parameters['b' + str(i)] = zero_init(layer_dims[i])
     return parameters
 
 
-def forward_propagation(w, b, a, activation):  # w : weights b : bias a : activation from previous layer
+def init_momentum(layer_dims):
+    momentum = {}
+    L = len(layer_dims)
+    for i in range(1, L):
+        momentum['dw' + str(i)] = np.zeros((layer_dims[i], layer_dims[i - 1]))
+        momentum['db' + str(i)] = np.zeros((layer_dims[i], 1))
+    return momentum
+
+
+# w : weights b : bias a : activation from previous layer
+def forward_propagation(w, b, a, activation):
     z = np.dot(w, a) + b
 
     if activation == 'sigmoid':
@@ -44,17 +57,15 @@ def forward_propagation(w, b, a, activation):  # w : weights b : bias a : activa
     return z, a
 
 
-def forward_propagation_full(parameters, layer_dim, x):  # x : input data y : label
+def forward_propagation_full(parameters, layer_dim, x):
     cache = {'a' + str(0): x}  # stores z,a values for backward propagation
     L = len(layer_dim)
     for i in range(1, L):
         w = parameters['w' + str(i)]
         b = parameters['b' + str(i)]
-        if i == L - 1:  # use softmax activation for the last layer
-            print("softmax")
+        if i == L - 1:  # use softmax activation for the final layer
             cache['z' + str(i)], cache['a' + str(i)] = forward_propagation(w, b, cache['a' + str(i - 1)], 'softmax')
-        else:  # use sigmoid or relu for the other layers.
-            print("relu")
+        else:  # use relu for the other layers.
             cache['z' + str(i)], cache['a' + str(i)] = forward_propagation(w, b, cache['a' + str(i - 1)], 'relu')
 
     aL = cache['a' + str(L - 1)]  # aL : final activation. returned value of softmax
@@ -62,12 +73,14 @@ def forward_propagation_full(parameters, layer_dim, x):  # x : input data y : la
 
 
 # cost function for binary classification. not used in this model
+"""
 def cost_function(aL, y):  # aL : activation from final layer, y : labels
     cost = np.zeros((aL.shape[0], 1))
     for i in range(y.shape[0]):
         cost[i][0] = -(np.dot(y[i][:], np.log(aL[i][:]).T) + np.dot((1 - y[i][:]), np.log(1 - aL[i][:]).T)) / y.shape[1]
     cost = np.linalg.norm(cost, ord=2)
     return cost
+"""
 
 
 def softmax_cost(aL, y):
@@ -100,8 +113,7 @@ def backward_propagation(da, a_prev, z, w, b, activation_method):  # da : gradie
 def backward_propagation_full(x, y, parameters, cache):
     grads = {}
     L = int(len(parameters) / 2)
-    aL = cache['a' + str(L)]
-    # daL = -y/aL + (1-y)/(1-aL)
+
     grads['da' + str(L)] = y
 
     flag = False  # apply gradient descent for softmax only for the first case
@@ -126,18 +138,19 @@ def backward_propagation_full(x, y, parameters, cache):
     return grads
 
 
-def update_parameter(parameters, grads, optimizer, learning_rate):
-    L = int(len(parameters) / 2)
-    if optimizer == 'batch':
-        for i in range(L):
-            parameters['w' + str(i + 1)] -= learning_rate * grads['dw' + str(i + 1)]
-            parameters['b' + str(i + 1)] -= learning_rate * grads['db' + str(i + 1)]
-    elif optimizer == 'momentum':
-        pass
-    elif optimizer == 'adam':
-        pass
+def update_parameter(parameters, grads, learning_rate, layer_dims):
+    L = len(layer_dims)
+    for i in range(1, L):
+        parameters['w' + str(i)] -= learning_rate * grads['dw' + str(i)]
+        parameters['b' + str(i)] -= learning_rate * grads['db' + str(i)]
     return parameters
 
+def update_momentum(momentum, grads, beta1, layer_dims):
+    L = len(layer_dims)
+    for i in range(1, L):
+        momentum['dw' + str(i)] = (beta1 * momentum['dw' + str(i)]) + ((1 - beta1) * grads['dw' + str(i)])
+        momentum['db' + str(i)] = (beta1 * momentum['db' + str(i)]) + ((1 - beta1) * grads['db' + str(i)])
+    return momentum
 
 
 def init_minibatch(x, y, minibatch_size):
@@ -158,58 +171,40 @@ def init_minibatch(x, y, minibatch_size):
     return minibatches
 
 
-def initialize_momentum(layer_dims):
-    momentum = {}
-    L = len(layer_dims)
-    for i in range(1, L):
-        momentum['vw' + str(i)] = np.zeros((layer_dims[i], layer_dims[i - 1]))
-        momentum['vb' + str(i)] = np.zeros((layer_dims[i], 1))
-    return momentum
-
-
-def update_momentum(momentum, grads, beta1, layer_dims):
-    L = len(layer_dims)
-    for i in range(1, L):
-        momentum['vw' + str(i)] = (beta1 * momentum['vw' + str(i)]) + ((1 - beta1) * grads['dw' + str(i)])
-        momentum['vb' + str(i)] = (beta1 * momentum['vb' + str(i)]) + ((1 - beta1) * grads['db' + str(i)])
-    return momentum
-
-
-def model(x, y, layer_dims, num_iter=1, optimizer='momentum', show_cost=True, learning_rate=0.1, minibatch_size=512,
+def model(x, y, layer_dims, num_iter=1, optimizer='momentum', show_cost=True, learning_rate=0.1, minibatch_size=2048,
           beta1=0.9):
     parameters = he_init(layer_dims)
+    momentum = init_momentum(layer_dims)
     costs = []
 
-    for iteration in range(1, num_iter+1):
-        aL, cache = forward_propagation_full(parameters, layer_dims, x)
-        cost = softmax_cost(aL, y)
-        grads = backward_propagation_full(x, y, parameters, cache)
-        parameters = update_parameter(parameters, grads, optimizer, learning_rate)
-        if iteration % 100 == 0 and show_cost == True:
-            print('cost after {} iteration :'.format(iteration), cost)
-
-    # momentum
-    """minibatches = init_minibatch(x, y, minibatch_size)
-    momentum = initialize_momentum(layer_dims)
     counter = 0
     for iter in range(num_iter):
+        # create random minibatches
+        minibatches = init_minibatch(x, y, minibatch_size)
         for minibatch in minibatches:
             mini_x, mini_y = minibatch
-            aL, cache = forward_propagation_full(parameters, layer_dims, mini_x, mini_y)
+            aL, cache = forward_propagation_full(parameters, layer_dims, mini_x)
+
+            # compute the cost and the gradient
             cost = softmax_cost(aL, mini_y)
             grads = backward_propagation_full(mini_x, mini_y, parameters, cache)
 
+            # updating parameters
             if optimizer == 'momentum':
-                update_momentum(momentum, grads, beta1, layer_dims)
-            elif optimizer == 'gradient_descent':
-                parameters = update_parameter(parameters, grads, optimizer, learning_rate)
+                momentum = update_momentum(momentum, grads, beta1, layer_dims)
+                parameters = update_parameter(parameters, momentum, learning_rate, layer_dims)
 
+            elif optimizer == 'gradient_descent':
+                parameters = update_parameter(parameters, grads, learning_rate, layer_dims)
+
+            # show the cost every 100 iterations
             if counter % 100 == 0 and show_cost == True:
                 costs.append(cost)
                 print('cost after {} iteration :'.format(counter), cost)
 
-            counter += 1"""
+            counter += 1
 
+    # plot how my cost is changing
     plt.plot(costs)
     plt.ylabel('cost')
     plt.xlabel('epochs (per 100)')
@@ -220,7 +215,7 @@ def model(x, y, layer_dims, num_iter=1, optimizer='momentum', show_cost=True, le
 
 
 def predict(parameters, layer_dim, train, y):
-    activation, cache = forward_propagation_full(parameters, layer_dim, train, y)
+    activation, cache = forward_propagation_full(parameters, layer_dim, train)
     prediction = activation.argmax(0)
-    data_to_submit = pd.DataFrame(prediction.T, columns=['prediction'])
+    data_to_submit = pd.DataFrame(prediction, columns=['prediction'])
     return data_to_submit
