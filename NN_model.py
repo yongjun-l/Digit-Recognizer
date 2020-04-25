@@ -138,12 +138,22 @@ def backward_propagation_full(x, y, parameters, cache):
     return grads
 
 
-def update_parameter(parameters, grads, learning_rate, layer_dims):
+def update_parameter(parameters, learning_rate, layer_dims, optimizer, *args):
     L = len(layer_dims)
-    for i in range(1, L):
-        parameters['w' + str(i)] -= learning_rate * grads['dw' + str(i)]
-        parameters['b' + str(i)] -= learning_rate * grads['db' + str(i)]
+    if optimizer == 'momentum' or optimizer == 'gradient_descent':
+        for i in range(1, L):
+            parameters['w' + str(i)] -= learning_rate * args[0]['dw' + str(i)]
+            parameters['b' + str(i)] -= learning_rate * args[0]['db' + str(i)]
+        return parameters
+
+    if optimizer == 'rms' or optimizer == 'adam':
+        for i in range(1, L):
+            parameters['w' + str(i)] -= learning_rate * (args[0]['dw' + str(i)] / (np.sqrt(args[1]['dw' + str(i)]) + args[2]))
+            parameters['b' + str(i)] -= learning_rate * (args[0]['db' + str(i)] / (np.sqrt(args[1]['db' + str(i)]) + args[2]))
+
+
     return parameters
+
 
 def update_momentum(momentum, grads, beta1, layer_dims):
     L = len(layer_dims)
@@ -151,6 +161,14 @@ def update_momentum(momentum, grads, beta1, layer_dims):
         momentum['dw' + str(i)] = (beta1 * momentum['dw' + str(i)]) + ((1 - beta1) * grads['dw' + str(i)])
         momentum['db' + str(i)] = (beta1 * momentum['db' + str(i)]) + ((1 - beta1) * grads['db' + str(i)])
     return momentum
+
+
+def update_rms(rms, grads, beta2, layer_dims):
+    L = len(layer_dims)
+    for i in range(1, L):
+        rms['dw' + str(i)] = (beta2 * rms['dw' + str(i)]) + ((1 - beta2) * grads['dw' + str(i)]) ** 2
+        rms['db' + str(i)] = (beta2 * rms['db' + str(i)]) + ((1 - beta2) * grads['db' + str(i)]) ** 2
+    return rms
 
 
 def init_minibatch(x, y, minibatch_size):
@@ -171,10 +189,11 @@ def init_minibatch(x, y, minibatch_size):
     return minibatches
 
 
-def model(x, y, layer_dims, num_iter=1, optimizer='momentum', show_cost=True, learning_rate=0.1, minibatch_size=2048,
-          beta1=0.9):
+def model(x, y, layer_dims, num_iter=1, optimizer='gradient_descent', show_cost=True, learning_rate=0.1, minibatch_size=2048,
+          beta1=0.9, beta2=0.9, epsilon=1e-8):
     parameters = he_init(layer_dims)
     momentum = init_momentum(layer_dims)
+    rms = init_momentum(layer_dims)
     costs = []
 
     counter = 0
@@ -187,22 +206,36 @@ def model(x, y, layer_dims, num_iter=1, optimizer='momentum', show_cost=True, le
 
             # compute the cost and the gradient
             cost = softmax_cost(aL, mini_y)
+            costs.append(cost)
             grads = backward_propagation_full(mini_x, mini_y, parameters, cache)
 
             # updating parameters
             if optimizer == 'momentum':
                 momentum = update_momentum(momentum, grads, beta1, layer_dims)
-                parameters = update_parameter(parameters, momentum, learning_rate, layer_dims)
+                parameters = update_parameter(parameters, learning_rate, layer_dims, optimizer, momentum)
 
             elif optimizer == 'gradient_descent':
-                parameters = update_parameter(parameters, grads, learning_rate, layer_dims)
+                parameters = update_parameter(parameters, learning_rate, layer_dims, optimizer, grads)
+
+            elif optimizer == 'rms':
+                rms = update_rms(rms, grads, beta2, layer_dims)
+                parameters = update_parameter(parameters, learning_rate, layer_dims, optimizer, grads, rms, epsilon)
+
+            elif optimizer == 'adam':
+                momentum = update_momentum(momentum, grads, beta1, layer_dims)
+                rms = update_rms(rms, grads, beta2, layer_dims)
+                parameters = update_parameter(parameters, learning_rate, layer_dims, optimizer, momentum, rms, epsilon)
 
             # show the cost every 100 iterations
+            """
             if counter % 100 == 0 and show_cost == True:
                 costs.append(cost)
                 print('cost after {} iteration :'.format(counter), cost)
-
+            """
             counter += 1
+        # show the cost after every epoch
+        if show_cost:
+            print('cost after epoch {} : '.format(iter+1), costs[-1])
 
     # plot how my cost is changing
     plt.plot(costs)

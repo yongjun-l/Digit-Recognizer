@@ -50,9 +50,10 @@ dev = np.divide(dev, 255)
 
 
 # training the model, and making a prediction
-layer_dims = [784, 500, 300, 100, 50, 10]
-parameters = nn.model(train, label_train_onehot, layer_dims, num_iter=200, optimizer='momentum', show_cost=True,
-                      learning_rate=0.1, minibatch_size=2048, beta1=0.9)
+np.random.seed(1)
+layer_dims = [784, 784, 784, 784, 10]
+parameters = nn.model(train, label_train_onehot, layer_dims, num_iter=26, optimizer='momentum', show_cost=True,
+                      learning_rate=0.001, minibatch_size=150, beta1=0.9)
 data_to_submit = nn.predict(parameters, layer_dims, dev, label_dev_onehot)
 
 data_to_submit.to_csv('myscv.csv')
